@@ -1,0 +1,263 @@
+/* Import Konfigurasi Tailwind jika diperlukan di masa depan */
+/* @tailwind base; */
+/* @tailwind components; */
+/* @tailwind utilities; */
+
+/* --- GENERAL STYLING --- */
+body {
+  font-family: "Poppins", sans-serif;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.section-title {
+  font-family: "Inter", sans-serif;
+  font-size: 2.25rem; /* text-4xl */
+  font-weight: 700;
+  text-align: center;
+  color: #1f2937; /* gray-800 */
+  position: relative;
+  padding-bottom: 0.75rem;
+}
+
+.section-title::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70px;
+  height: 4px;
+  background-color: #d97706; /* amber-600 */
+  border-radius: 2px;
+}
+
+/* --- NAVIGATION --- */
+.nav-link {
+  color: #4b5563; /* gray-600 */
+  transition: color 0.3s ease;
+  padding-bottom: 4px;
+  position: relative;
+}
+.nav-link:hover {
+  color: #15803d; /* green-700 */
+}
+.nav-link::after {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: 0;
+  left: 50%;
+  background-color: #15803d;
+  transition: all 0.3s ease-in-out;
+}
+.nav-link:hover::after {
+  width: 100%;
+  left: 0;
+}
+.mobile-nav-link {
+  display: block;
+  padding: 0.75rem 1.5rem;
+  color: #4b5563; /* gray-600 */
+  transition: all 0.3s ease;
+  border-bottom: 1px solid #e5e7eb; /* gray-200 */
+}
+.mobile-nav-link:hover {
+  background-color: #16a34a; /* green-600 */
+  color: white;
+}
+
+/* --- HERO & CTA --- */
+.hero-bg {
+  /* URL gambar dipindahkan ke sini agar lebih mudah diganti */
+  background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
+    url("img/mnsblang.jpg");
+  background-size: cover;
+  background-position: center;
+}
+
+.cta-button {
+  display: inline-block;
+  background-color: #f59e0b; /* amber-500 */
+  color: white;
+  font-weight: 600;
+  padding: 0.75rem 2rem;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease-in-out;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+.cta-button:hover {
+  background-color: #d97706; /* amber-600 */
+  transform: scale(1.05);
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* --- KARTU PERANGKAT DESA --- */
+.perangkat-card {
+  background-color: white;
+  border-radius: 0.75rem; /* rounded-xl */
+  text-align: center;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.perangkat-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+.perangkat-photo {
+  width: 128px; /* w-32 */
+  height: 128px; /* h-32 */
+  border-radius: 9999px; /* rounded-full */
+  object-fit: cover;
+  margin-left: auto;
+  margin-right: auto;
+  border: 4px solid white;
+  box-shadow: 0 0 0 4px #d97706;
+}
+
+/* --- LAYANAN (ACCORDION) --- */
+.accordion-item {
+  border: 1px solid #e5e7eb; /* gray-200 */
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+.accordion-header {
+  width: 100%;
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f9fafb; /* gray-50 */
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+.accordion-header:hover {
+  background-color: #f3f4f6; /* gray-100 */
+}
+.accordion-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease-in-out, padding 0.4s ease-in-out;
+  padding: 0 1.5rem;
+  background-color: white;
+}
+.accordion-content.open {
+  padding: 1.5rem;
+}
+.accordion-icon {
+  transition: transform 0.4s ease-in-out;
+}
+.accordion-header.active .accordion-icon {
+  transform: rotate(180deg);
+}
+
+/* --- KARTU BERITA --- */
+.berita-card {
+  background-color: white;
+  border-radius: 0.75rem; /* rounded-xl */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.berita-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+.berita-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+/* --- GALERI --- */
+.galeri-item {
+  display: block;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+.galeri-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+.galeri-item:hover .galeri-image {
+  transform: scale(1.1);
+}
+
+/* --- FOOTER --- */
+.social-link {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 9999px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #d1d5db; /* gray-300 */
+  transition: all 0.3s ease;
+}
+.social-link:hover {
+  background-color: #f59e0b; /* amber-500 */
+  color: white;
+  transform: scale(1.1);
+}
+
+.gemini-button-prominent {
+  background-color: #4caf50; /* Warna hijau yang menarik perhatian */
+  color: white; /* Teks putih agar kontras */
+  padding: 15px 30px; /* Padding lebih besar */
+  font-size: 18px; /* Ukuran font lebih besar */
+  border: none; /* Hilangkan border default */
+  border-radius: 8px; /* Sudut yang sedikit membulat */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Tambahkan bayangan halus */
+  cursor: pointer; /* Ubah kursor saat hover */
+  transition: background-color 0.3s ease, transform 0.2s ease; /* Transisi halus */
+}
+
+.gemini-button-prominent:hover {
+  background-color: #45a049; /* Warna sedikit lebih gelap saat hover */
+  transform: translateY(-2px); /* Efek sedikit terangkat saat hover */
+}
+
+.gemini-button-prominent:active {
+  background-color: #3e8e41; /* Warna lebih gelap saat ditekan */
+  transform: translateY(0); /* Kembali ke posisi normal saat ditekan */
+}
+
+.gemini-button-prominent .fas {
+  margin-right: 10px; /* Jarak ikon lebih besar */
+  font-size: 20px; /* Ukuran ikon lebih besar */
+}
+
+/* Styling untuk loading spinner (jika diperlukan penyesuaian) */
+.loading-spinner {
+  /* Contoh styling dasar, sesuaikan dengan implementasi spinner Anda */
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top: 4px solid white;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+  display: inline-block; /* Agar sejajar dengan teks */
+  margin-left: 10px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
