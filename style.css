@@ -261,3 +261,11 @@ body {
     transform: rotate(360deg);
   }
 }
+@media (max-width: 640px) {
+  .hero-bg {
+    background-image: url("img/mnsblang.jpg");
+    background-size: cover;
+    background-position: center;
+    min-height: 300px;
+  }
+}
