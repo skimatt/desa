@@ -71,11 +71,23 @@ body {
 
 /* --- HERO & CTA --- */
 .hero-bg {
-  /* URL gambar dipindahkan ke sini agar lebih mudah diganti */
   background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
     url("img/mnsblang.jpg");
   background-size: cover;
   background-position: center;
+  background-attachment: fixed;
+  min-height: 100vh; /* pastikan tinggi cukup agar background terlihat */
+}
+
+/* Aturan untuk perangkat mobile */
+@media (max-width: 640px) {
+  .hero-bg {
+    background-image: url("img/mnsblang.jpg"); /* hapus linear-gradient jika tidak diperlukan */
+    background-size: cover;
+    background-position: center;
+    background-attachment: scroll; /* nonaktifkan fixed di mobile */
+    min-height: 100vh;
+  }
 }
 
 .cta-button {
@@ -259,13 +271,5 @@ body {
   }
   100% {
     transform: rotate(360deg);
-  }
-}
-@media (max-width: 640px) {
-  .hero-bg {
-    background-image: url("img/mnsblang.jpg");
-    background-size: cover;
-    background-position: center;
-    min-height: 300px;
   }
 }
