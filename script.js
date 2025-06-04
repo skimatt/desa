@@ -1,4 +1,29 @@
 document.addEventListener("DOMContentLoaded", function () {
+  // Utility function to toggle visibility
+  function toggleVisibility(element, isVisible, className = "hidden") {
+    if (element) {
+      element.classList.toggle(className, !isVisible);
+    }
+  }
+
+  // Utility function to display user-friendly error messages
+  function showUserError(elementId, message) {
+    const container = document.getElementById(elementId);
+    if (container) {
+      container.innerHTML = `<p class="text-amber-600">${message}</p>`;
+      toggleVisibility(container, true);
+    }
+  }
+
+  // Utility function to clean API response text (remove markdown)
+  function cleanResponseText(text) {
+    return text
+      .replace(/\*\*([^*]+)\*\*/g, "$1") // Remove **bold**
+      .replace(/\*([^*]+)\*/g, "$1") // Remove *italic*
+      .replace(/[-*]{1,2}\s/g, "") // Remove list markers
+      .replace(/\n/g, "<br>"); // Convert newlines to <br>
+  }
+
   // --- Mobile Menu Logic ---
   const mobileMenuButton = document.getElementById("mobile-menu-button");
   const mobileMenu = document.getElementById("mobile-menu");
@@ -28,16 +53,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
     navLinks.forEach((link) => {
       link.addEventListener("click", () => {
-        mobileMenu.classList.add("hidden"); // Sembunyikan menu
-        hamburgerIcon.classList.remove("hidden"); // Tampilkan ikon hamburger
-        closeIcon.classList.add("hidden"); // Sembunyikan ikon close
+        toggleVisibility(mobileMenu, false);
+        toggleVisibility(hamburgerIcon, true);
+        toggleVisibility(closeIcon, false);
         mobileMenuButton.setAttribute("aria-expanded", "false");
       });
     });
   } else {
-    console.error(
-      "Satu atau lebih elemen menu mobile tidak ditemukan. Pastikan ID elemen sudah benar."
-    );
+    console.error("Elemen menu mobile tidak ditemukan.");
+    showUserError("mobile-menu", "Maaf, menu mobile tidak tersedia saat ini.");
   }
 
   // --- Set Current Year in Footer ---
@@ -50,7 +74,6 @@ document.addEventListener("DOMContentLoaded", function () {
   document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
     anchor.addEventListener("click", function (e) {
       const hrefAttribute = this.getAttribute("href");
-      // Pastikan hrefAttribute tidak hanya "#" dan bukan null/kosong
       if (
         hrefAttribute &&
         hrefAttribute.length > 1 &&
@@ -60,7 +83,6 @@ document.addEventListener("DOMContentLoaded", function () {
           const targetElement = document.querySelector(hrefAttribute);
           if (targetElement) {
             e.preventDefault();
-            // Perhitungkan tinggi header jika sticky
             const headerOffset =
               document.querySelector("header")?.offsetHeight || 0;
             const elementPosition = targetElement.getBoundingClientRect().top;
@@ -73,13 +95,10 @@ document.addEventListener("DOMContentLoaded", function () {
             });
           }
         } catch (error) {
-          console.warn(
-            `Smooth scroll target tidak ditemukan atau selector tidak valid: ${hrefAttribute}`,
-            error
-          );
+          console.warn(`Smooth scroll gagal untuk: ${hrefAttribute}`, error);
         }
       } else if (hrefAttribute === "#") {
-        e.preventDefault(); // Mencegah lompatan ke atas halaman untuk link "#" saja
+        e.preventDefault();
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
     });
@@ -87,100 +106,111 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // --- Accordion for Public Services ---
   const accordionHeaders = document.querySelectorAll(".accordion-header");
-  accordionHeaders.forEach((header) => {
-    header.addEventListener("click", function () {
-      const content = this.nextElementSibling; // .accordion-content
-      const wasActive = this.classList.contains("active");
+  accordionHeaders.forEach((header, index) => {
+    const content = header.nextElementSibling;
+    if (content) {
+      content.id = content.id || `accordion-content-${index}`;
+      header.setAttribute("aria-controls", content.id);
+      header.setAttribute("aria-expanded", "false");
+      header.setAttribute("tabindex", "0"); // Make header focusable
+    }
 
-      // Tutup semua akordeon lain
-      document
-        .querySelectorAll(".accordion-header.active")
-        .forEach((activeHeader) => {
-          if (activeHeader !== this) {
-            activeHeader.classList.remove("active");
-            const otherContent = activeHeader.nextElementSibling;
-            if (
-              otherContent &&
-              otherContent.classList.contains("accordion-content")
-            ) {
-              otherContent.style.maxHeight = null;
-              otherContent.classList.remove("open");
-            }
-          }
-        });
-
-      // Toggle akordeon yang diklik
-      if (wasActive) {
-        this.classList.remove("active");
-        if (content && content.classList.contains("accordion-content")) {
-          content.style.maxHeight = null;
-          content.classList.remove("open");
-        }
-      } else {
-        this.classList.add("active");
-        if (content && content.classList.contains("accordion-content")) {
-          content.style.maxHeight = content.scrollHeight + "px";
-          content.classList.add("open");
-        }
+    header.addEventListener("click", () => toggleAccordion(header, content));
+    header.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        toggleAccordion(header, content);
       }
     });
   });
 
-  // --- Gemini API Integration (via Proxy) ---
+  function toggleAccordion(header, content) {
+    const wasActive = header.classList.contains("active");
+    document
+      .querySelectorAll(".accordion-header.active")
+      .forEach((activeHeader) => {
+        if (activeHeader !== header) {
+          activeHeader.classList.remove("active");
+          activeHeader.setAttribute("aria-expanded", "false");
+          const otherContent = activeHeader.nextElementSibling;
+          if (
+            otherContent &&
+            otherContent.classList.contains("accordion-content")
+          ) {
+            otherContent.style.maxHeight = null;
+            otherContent.classList.remove("open");
+          }
+        }
+      });
+
+    header.classList.toggle("active");
+    header.setAttribute("aria-expanded", !wasActive);
+    if (content && content.classList.contains("accordion-content")) {
+      content.style.maxHeight = wasActive ? null : `${content.scrollHeight}px`;
+      content.classList.toggle("open", !wasActive);
+    }
+  }
+
+  // --- Gemini API Integration ---
   const geminiApiUrl = "https://gemini.rahmatyoung10.workers.dev/";
 
   async function callGeminiAPI(
     prompt,
     outputElementId,
     loadingElementId,
-    buttonElement
+    buttonElement,
+    retries = 2
   ) {
     const outputElement = document.getElementById(outputElementId);
     const loadingElement = document.getElementById(loadingElementId);
 
-    if (!outputElement) {
-      console.error(`Output element with ID '${outputElementId}' not found.`);
+    if (!outputElement || !loadingElement) {
+      console.error(
+        `Element missing: outputElementId='${outputElementId}', loadingElementId='${loadingElementId}'`
+      );
+      showUserError(
+        outputElementId,
+        "Maaf, layanan ini sedang tidak tersedia. Silakan coba lagi nanti."
+      );
       return;
     }
-    if (!loadingElement) {
-      console.error(`Loading element with ID '${loadingElementId}' not found.`);
-    }
 
-    if (loadingElement) loadingElement.classList.remove("hidden");
-    outputElement.classList.add("hidden");
+    toggleVisibility(loadingElement, true);
+    toggleVisibility(outputElement, false);
     outputElement.innerHTML = "";
     if (buttonElement) buttonElement.disabled = true;
 
-    try {
-      const response = await fetch(geminiApiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
-      });
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const response = await fetch(geminiApiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt }),
+        });
 
-      const result = await response.json();
+        const result = await response.json();
 
-      if (response.ok && result.reply) {
-        // Ganti newline dengan <br> untuk tampilan HTML
-        outputElement.innerHTML = `<p>${result.reply.replace(
-          /\n/g,
-          "<br>"
-        )}</p>`;
-      } else {
-        console.error("Unexpected response from Gemini API:", result);
-        outputElement.innerHTML = `<p class='text-red-500'>Gagal mendapatkan respon yang valid dari AI. ${
-          result.error || ""
-        }</p>`;
+        if (response.ok && result.reply) {
+          outputElement.innerHTML = `<p>${cleanResponseText(result.reply)}</p>`;
+          toggleVisibility(outputElement, true);
+          break;
+        } else {
+          throw new Error(result.error || "Respon AI tidak valid");
+        }
+      } catch (error) {
+        console.error(`Percobaan ${attempt} gagal:`, error);
+        if (attempt === retries) {
+          showUserError(
+            outputElementId,
+            "Maaf, ada kendala dalam menghubungi layanan AI. Silakan coba lagi nanti."
+          );
+          toggleVisibility(outputElement, true);
+        }
       }
-      outputElement.classList.remove("hidden");
-    } catch (error) {
-      console.error("Error calling Gemini API:", error);
-      outputElement.innerHTML = `<p class='text-red-500'>Gagal memanggil AI: ${error.message}</p>`;
-      outputElement.classList.remove("hidden");
-    } finally {
-      if (loadingElement) loadingElement.classList.add("hidden");
-      if (buttonElement) buttonElement.disabled = false;
     }
+
+    toggleVisibility(loadingElement, false);
+    if (buttonElement) buttonElement.disabled = false;
   }
 
   // Event Listener: Ide Kegiatan Desa
@@ -190,7 +220,7 @@ document.addEventListener("DOMContentLoaded", function () {
   if (generateActivityIdeaBtn) {
     generateActivityIdeaBtn.addEventListener("click", () => {
       const prompt =
-        "Berikan 3 ide kegiatan atau program pengembangan yang inovatif dan cocok untuk sebuah desa di Aceh seperti Gampong Meunasah Blang. Fokus pada kegiatan yang dapat meningkatkan kesejahteraan warga, memanfaatkan potensi lokal (pertanian, perikanan, budaya), dan mempererat kebersamaan komunitas. Sertakan juga potensi tantangan dan solusi singkat untuk setiap ide.";
+        "Berikan 3 ide kegiatan atau program pengembangan yang inovatif untuk desa di Aceh seperti Gampong Meunasah Blang. Fokus pada potensi lokal seperti pertanian padi basah, perikanan laut, atau kerajinan songket, sambil memperkuat nilai keislaman dan kebersamaan komunitas. Jawab dalam bahasa sederhana tanpa tanda bintang atau format penekanan. Sertakan potensi tantangan dan solusi singkat untuk setiap ide.";
       callGeminiAPI(
         prompt,
         "activityIdeaResult",
@@ -200,6 +230,10 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   } else {
     console.warn("Button 'generateActivityIdeaBtn' not found.");
+    showUserError(
+      "activityIdeaResult",
+      "Maaf, fitur ide kegiatan desa tidak tersedia saat ini."
+    );
   }
 
   // Event Listener: Ringkas Berita
@@ -208,7 +242,7 @@ document.addEventListener("DOMContentLoaded", function () {
   if (summarizeNewsBtn && sakdiahStoryTextElement) {
     summarizeNewsBtn.addEventListener("click", () => {
       const storyText = sakdiahStoryTextElement.innerText;
-      const prompt = `Ringkaslah teks berikut dalam 2-3 kalimat singkat dan padat, menyoroti poin utama tentang Ibu Sakdiah Ismail:\n\n"${storyText}"`;
+      const prompt = `Ringkaslah teks berikut dalam 2-3 kalimat singkat dan padat, menyoroti poin utama tentang Ibu Sakdiah Ismail. Gunakan bahasa sederhana tanpa tanda bintang atau format penekanan:\n\n"${storyText}"`;
       callGeminiAPI(
         prompt,
         "newsSummaryResult",
@@ -220,6 +254,10 @@ document.addEventListener("DOMContentLoaded", function () {
     console.warn(
       "Button 'summarizeNewsBtn' or text 'sakdiahStoryTextElement' not found."
     );
+    showUserError(
+      "newsSummaryResult",
+      "Maaf, fitur ringkas berita tidak tersedia saat ini."
+    );
   }
 
   // Event Listener: Tanya Jawab Seputar Aceh
@@ -228,14 +266,18 @@ document.addEventListener("DOMContentLoaded", function () {
   if (askAcehQuestionBtn && acehQuestionInput) {
     askAcehQuestionBtn.addEventListener("click", () => {
       const question = acehQuestionInput.value.trim();
-      const outputElement = document.getElementById("acehQuestionResult"); // Definisikan di sini untuk pesan error
+      const outputElement = document.getElementById("acehQuestionResult");
       if (!outputElement) {
         console.error("Output element 'acehQuestionResult' not found.");
+        showUserError(
+          "acehQuestionResult",
+          "Maaf, fitur tanya jawab tidak tersedia saat ini."
+        );
         return;
       }
 
       if (question) {
-        const prompt = `Jawab pertanyaan berikut tentang Aceh dengan informatif dan ringkas. Jika pertanyaan di luar konteks Aceh atau tidak pantas, berikan respons yang sopan dan netral:\n\n"${question}"`;
+        const prompt = `Jawab pertanyaan berikut tentang Aceh dengan informatif, ringkas, dan dalam bahasa sederhana tanpa tanda bintang atau format penekanan lainnya. Jika pertanyaan di luar konteks Aceh atau tidak pantas, berikan respons sopan dan netral:\n\n"${question}"`;
         callGeminiAPI(
           prompt,
           "acehQuestionResult",
@@ -243,24 +285,27 @@ document.addEventListener("DOMContentLoaded", function () {
           askAcehQuestionBtn
         );
       } else {
-        outputElement.innerHTML =
-          "<p class='text-amber-600'>Silakan masukkan pertanyaan Anda terlebih dahulu.</p>";
-        outputElement.classList.remove("hidden");
+        outputElement.innerHTML = `<p class="text-amber-600">Silakan masukkan pertanyaan Anda terlebih dahulu.</p>`;
+        toggleVisibility(outputElement, true);
       }
     });
   } else {
     console.warn(
       "Button 'askAcehQuestionBtn' or input 'acehQuestionInput' not found."
     );
+    showUserError(
+      "acehQuestionResult",
+      "Maaf, fitur tanya jawab tidak tersedia saat ini."
+    );
   }
 
   // --- OpenWeatherMap API Integration ---
-  const weatherApiKey = "MASUKKAN_API_KEY_ANDA_DI_SINI"; // Ganti dengan API Key Anda
+  const weatherApiKey = process.env.WEATHER_API_KEY || "";
   const weatherCity = "Banda Aceh";
   const weatherLoadingElement = document.getElementById("weather-loading");
   const weatherDataContainer = document.getElementById("weather-data");
 
-  if (weatherApiKey && weatherApiKey !== "MASUKKAN_API_KEY_ANDA_DI_SINI") {
+  if (weatherApiKey) {
     if (weatherLoadingElement && weatherDataContainer) {
       fetch(
         `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(
@@ -268,10 +313,7 @@ document.addEventListener("DOMContentLoaded", function () {
         )},ID&appid=${weatherApiKey}&units=metric&lang=id`
       )
         .then((response) => {
-          if (!response.ok)
-            throw new Error(
-              `Gagal mengambil data cuaca (status: ${response.status})`
-            );
+          if (!response.ok) throw new Error("Gagal mengambil data cuaca");
           return response.json();
         })
         .then((data) => {
@@ -286,27 +328,29 @@ document.addEventListener("DOMContentLoaded", function () {
           if (weatherHumidityEl)
             weatherHumidityEl.textContent = data.main.humidity;
           if (weatherWindEl)
-            weatherWindEl.textContent = (data.wind.speed * 3.6).toFixed(1); // m/s to km/h
+            weatherWindEl.textContent = (data.wind.speed * 3.6).toFixed(1);
 
-          weatherLoadingElement.classList.add("hidden");
-          weatherDataContainer.classList.remove("hidden");
+          toggleVisibility(weatherLoadingElement, false);
+          toggleVisibility(weatherDataContainer, true);
         })
         .catch((error) => {
           console.error("Error fetching weather data:", error);
-          if (weatherLoadingElement)
-            weatherLoadingElement.textContent = `Terjadi kesalahan: ${error.message}`;
-          weatherDataContainer.classList.add("hidden");
+          showUserError(
+            "weather-loading",
+            "Maaf, data cuaca tidak dapat ditampilkan saat ini."
+          );
+          toggleVisibility(weatherDataContainer, false);
         });
     } else {
       console.warn("Elemen untuk tampilan cuaca tidak ditemukan.");
+      showUserError("weather-loading", "Maaf, fitur cuaca tidak tersedia.");
     }
   } else {
-    if (weatherLoadingElement) {
-      weatherLoadingElement.textContent =
-        "API Key OpenWeatherMap belum dimasukkan. Fitur cuaca tidak aktif.";
-      weatherLoadingElement.classList.remove("hidden"); // Pastikan pesan ini terlihat
-    }
-    if (weatherDataContainer) weatherDataContainer.classList.add("hidden");
-    console.warn("API Key OpenWeatherMap tidak valid atau belum dimasukkan.");
+    console.warn("API Key OpenWeatherMap tidak ditemukan.");
+    showUserError(
+      "weather-loading",
+      "Fitur cuaca tidak aktif karena kunci API belum dikonfigurasi."
+    );
+    toggleVisibility(weatherDataContainer, false);
   }
 });
